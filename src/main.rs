@@ -273,7 +273,7 @@ fn main() -> io::Result<()> {
         file_path: None,
     };
     enable_raw_mode()?;
-    if !args[1].is_empty() {
+    if args.len() >= 2 && !args[1].is_empty() {
         let file_path = path::Path::new(&args[1]);
         app.file_path = Some(file_path.to_path_buf());
         match read_file(file_path) {
