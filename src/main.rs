@@ -148,9 +148,15 @@ impl SawdustApp {
                     if self.current_line < self.text.len() - 1 {
                         self.current_line += 1;
                     }
+                    if self.current_line == self.top_line + self.num_lines {
+                        self.top_line += 1;
+                    }
                 }
                 KeyCode::Char('k') => {
                     if self.current_line > 0 {
+                        if self.current_line == self.top_line {
+                            self.top_line -= 1;
+                        }
                         self.current_line -= 1;
                     }
                 }
@@ -195,6 +201,10 @@ impl SawdustApp {
     }
 
     fn draw_line(&mut self, line: &String, height: u16, line_number: usize) -> io::Result<()> {
+        let line_num_as_str = (line_number as u16).to_string();
+        let margin_offset = ((self.top_line + self.num_lines) as u16)
+            .to_string().len() as u16;
+
         if self.current_line == line_number {
             self.term
                 .queue(cursor::MoveTo(0, height))?
@@ -202,12 +212,12 @@ impl SawdustApp {
         } else {
             self.term
                 .queue(cursor::MoveTo(self.left_margin - 2, height))?
-                .queue(style::Print(format!("{:}", line_number)))?;
+                .queue(style::PrintStyledContent(line_num_as_str.dark_grey()))?;
         }
 
         for (idx, c) in line.chars().take(80).enumerate() {
             self.term
-                .queue(cursor::MoveTo(idx as u16 + self.left_margin, height))?
+                .queue(cursor::MoveTo(idx as u16 + self.left_margin + margin_offset, height))?
                 .queue(style::Print(c))?;
         }
         Ok(())
@@ -225,8 +235,10 @@ impl SawdustApp {
     }
 
     fn move_cursor(&mut self) -> io::Result<()> {
-        let to_move_x = self.get_col_in_line() as u16 + self.left_margin;
-        let to_move_y = self.current_line as u16;
+        let margin_offset = ((self.top_line + self.num_lines) as u16)
+            .to_string().len() as u16;
+        let to_move_x = self.get_col_in_line() as u16 + self.left_margin + margin_offset;
+        let to_move_y = self.current_line as u16 - self.top_line as u16;
         self.term.queue(cursor::MoveTo(to_move_x, to_move_y))?;
         Ok(())
     }
@@ -255,7 +267,7 @@ fn main() -> io::Result<()> {
         text: vec!["".to_string()],
         top_line: 0,
         current_line: 0,
-        num_lines: 20,
+        num_lines: 40,
         current_col: 0,
         left_margin: 4,
         file_path: None,
